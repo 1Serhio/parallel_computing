@@ -1,7 +1,6 @@
 #include <iostream>
 #include <vector>
-#include <cstdlib>
-#include <ctime>
+#include <chrono>
 #include <omp.h>
 
 using namespace std;
@@ -52,11 +51,13 @@ int countLiveNeighbors(const Grid& grid, int x, int y) {
 }
 
 //обновление состояния поля
-void update(Grid& grid) {
+void update(Grid& grid, int numThreads) {
     Grid newGrid = grid; //копия для безопасного обновления
     int liveCount = 0; //количество живых клеток на поле
 
-#pragma omp parallel for collapse(2) reduction(+:liveCount) //параллельное выполнение итераций, объединение двух циклов в один
+    auto start = std::chrono::high_resolution_clock::now(); //старт таймера
+
+#pragma omp parallel for collapse(2) reduction(+:liveCount) num_threads(numThreads) //параллельное выполнение итераций, объединение двух циклов в один
     for (int i = 0; i < HEIGHT; ++i) {
         for (int j = 0; j < WIDTH; ++j) {
             int liveNeighbors = countLiveNeighbors(grid, i, j);//определяем количество живых соседей у каждой клетки
@@ -70,22 +71,31 @@ void update(Grid& grid) {
         }
     }
 
+    auto end = std::chrono::high_resolution_clock::now(); //конец таймера
+    std::chrono::duration<double> elapsed = end - start; //подсчёт времени
+
     grid = std::move(newGrid); //обновление игрового поля
-    cout << "Живые клетки: " << liveCount << "\n";
+    cout << "Потоки: " << numThreads 
+         << " | Время: " << elapsed.count() << "s"
+         << " | Живые клетки: " << liveCount << "\n";
+    
 }
 
 int main() {
 
     setlocale(LC_ALL, "");
 
-    Grid grid(HEIGHT, std::vector<int>(WIDTH, 0));
-    initialize(grid);
+    std::vector<int> threadCounts = { 1, 2, 4, 8, 16 }; //разные числа потоков
 
-    for (int i = 0; i < ITERATIONS; ++i) {
-        cout << "Итерация: " << i + 1 << "\n";
-        //printGrid(grid);
-        update(grid);
+    for (int threads : threadCounts) {
+        Grid grid(HEIGHT, std::vector<int>(WIDTH, 0));
+        initialize(grid);
+        for (int i = 0; i < ITERATIONS; ++i) {
+            cout << "Итерация: " << i + 1 << "\n";
+            //printGrid(grid);
+            update(grid, threads);
+        }
+        printGrid(grid);
     }
-    printGrid(grid);
     return 0;
 }
