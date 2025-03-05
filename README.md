@@ -1,1 +1,1 @@
-![](C:\Users\4mo\AppData\Roaming\Caret Beta\Introduction\.pastes\2025-03-05-15-00-56.png)
+![image](https://github.com/user-attachments/assets/faa53b54-cf06-4517-849a-9607da4a74af)
